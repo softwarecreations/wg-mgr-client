@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-// updated 2024-04-16
-
 // uglifyjs wg-mgr-client.js -m -o ugly.min.js
 
 const fs = require('fs');
