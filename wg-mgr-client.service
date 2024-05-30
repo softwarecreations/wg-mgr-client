@@ -1,0 +1,16 @@
+[Unit]
+Description=Wireguard VPN config manager - Client
+After=local-fs.target nss-lookup.target network-online.target
+Before=nginx.service wg-quick@wg_router
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c '. /root/.nvm/nvm.sh && node /opt/wg-mgr-client/wg-mgr-client*.js updateWgConf'
+WorkingDirectory=/opt/wg-mgr-client
+User=root
+
+[Install]
+WantedBy=multi-user.target
+
+# ln -s /opt/wg-mgr-client/wg-mgr-client.service /etc/systemd/system/; systemctl enable wg-mgr-client; systemctl start wg-mgr-client; systemctl status wg-mgr-client
