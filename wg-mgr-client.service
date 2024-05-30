@@ -1,7 +1,7 @@
 [Unit]
 Description=Wireguard VPN config manager - Client
 After=local-fs.target nss-lookup.target network-online.target
-Before=nginx.service wg-quick@wg_router
+Before=nginx.service wg-quick@wg_router.service
 
 [Service]
 Type=oneshot
