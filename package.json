@@ -1,0 +1,21 @@
+{
+  "name": "wg-mgr-client",
+  "version": "1.0.0",
+  "description": "Even though this repo is public, it's experimental, not intending for anybody to use it in it's current state.",
+  "main": "wg-mgr-client.js",
+  "scripts": {
+    "install-global-minifier": "npm i -g uglify-js",
+    "minify": "uglifyjs wg-mgr-client.js -m -o wg-mgr-client.min.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/softwarecreations/wg-mgr-client.git"
+  },
+  "author": "softwarecreations",
+  "license": "GPL-2.0",
+  "bugs": {
+    "url": "https://github.com/softwarecreations/wg-mgr-client/issues"
+  },
+  "homepage": "https://github.com/softwarecreations/wg-mgr-client#readme"
+}

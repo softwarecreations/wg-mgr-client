@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 
-// uglifyjs wg-mgr-client.js -m -o ugly.min.js
-
 const fs = require('fs');
 const https = require('https');
 const { spawn } = require('child_process');
 
-( () => { // wrapped for uglifyjs
+( () => { // wrapped for uglify-js
   const urlFilePath = __dirname + '/wg-mgr-client.url';
   const clientHttpsUrl = fs.readFileSync(urlFilePath).toString().split('\n')[0].trim();
   const clientHttpsHost = clientHttpsUrl.match(/(https?:\/\/[^/]+)/)[1];
