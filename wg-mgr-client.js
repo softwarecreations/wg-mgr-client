@@ -2,7 +2,8 @@
 
 const fs = require('fs');
 const https = require('https');
-const { spawn } = require('child_process');
+const { exec, spawn } = require('child_process');
+const otherPossibleServicesA = [ 'ssh', 'nginx', 'mongod' ]; // they don't need to be installed on all systems, do not edit for specific systems.
 
 ( () => { // wrapped for uglify-js
   const urlFilePath = __dirname + '/wg-mgr-client.url';
@@ -68,6 +69,16 @@ const { spawn } = require('child_process');
   const writeWgClientConfP = async () => {
     const dataO = await getDataOP();
     const { name, label, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNameLabelsA, PersistentKeepalive } = dataO;
+    const restartVpn = () => {
+      console.log(`Restarting wg-quick@wg_${vpnName}.service`);
+      spawn('systemctl', ['restart', `wg-quick@wg_${vpnName}.service`], { stdio:'inherit' });
+      exec('systemctl list-units --all', (err, stdout) => {
+        if (err) return;
+        const otherServicesA = otherPossibleServicesA.map( name => `${name}.service` ).filter( svcName => stdout.includes(svcName) );
+        console.log(`Restarting [${otherServicesA.join(', ')}]`); // so they can receive incoming connections from the VPN
+        spawn('systemctl', ['restart'].concat(otherServicesA), { stdio:'inherit' });
+      });
+    };
     console.log("vpnName", vpnName)
     const nameLabel = getNameLabel(name,label);
     const outA = getAutoGenA(dataO).concat(['[Interface]', `#My (client IP and key) - ${nameLabel}`, `Address = ${vpnIp}/32`, `PrivateKey = ${PrivateKey}`]);
@@ -83,7 +94,11 @@ const { spawn } = require('child_process');
     outA.push(`PersistentKeepalive = ${PersistentKeepalive}`);
     const clientWgConfS = outA.join('\n');
     const clientWgConfPath = `/etc/wireguard/wg_${vpnName}.conf`;
-    if (fs.existsSync(clientWgConfPath) && fs.readFileSync(clientWgConfPath).toString()===clientWgConfS) return console.log(`No change in ${clientWgConfPath}`);
+    if (fs.existsSync(clientWgConfPath) && fs.readFileSync(clientWgConfPath).toString()===clientWgConfS) {
+      console.log(`No change in ${clientWgConfPath}`);
+      if (argCmd==='updateRestart') restartVpn();
+      return;
+    }
     fs.writeFileSync(clientWgConfPath, clientWgConfS);
     console.log(`Wrote new conf ${clientWgConfPath} client:${nameLabel} that connects to server '${serverName}' and ${allowedNameLabelsA.length} other ${'peer'.addS(allowedNameLabelsA.length)} [ '${allowedNameLabelsA.join("', '")}' ]`);
     // update /etc/hosts
@@ -95,8 +110,7 @@ const { spawn } = require('child_process');
     }).concat({ name, ip:vpnIp }).sort( ({ip:a},{ip:b}) => Number(a.split('.')[3]) - Number(b.split('.')[3]) );
     const wgHosts = allNamesHostsA.map( ({ name, ip }) => `${ip}  ${' '.repeat(longestVpnIp-ip.length)}wg-${name}` ).join('\n');
     if (fileReplaceStringBetweenComments('/etc/hosts', `wg_${vpnName}`, wgHosts, 'append')) console.log('Updated /etc/hosts');
-    // restart vpn
-    spawn('systemctl', ['restart', `wg-quick@wg_${vpnName}.service`], { stdio: 'inherit' });
+    restartVpn();
   };
 
   const exitError = msg => {
@@ -130,17 +144,19 @@ const { spawn } = require('child_process');
   const argsA = process.argv.slice(process.argv.findIndex( s => !s.endsWith('node') && !s.endsWith('.js') ));
   const [ argCmd, argParam0, argParam1 ] = argsA;
 
+  const isolatedUsageA = [ 'updateRestart', 'updateWgConf' ];
   const showUsageHintsP = async () => {
     const dataO = await getDataOP();
     const { isolation, otherNodeIpsA, otherNodeLabelsA } = dataO;
-    const usageA = isolation ? ['updateWgConf'] : ( ['updateWgConf']
+    const usageA = isolation ? isolatedUsageA : ( isolatedUsageA
       .concat(otherNodeLabelsA.map( label => `mongosh  ${label} <dbname>` ))
       .concat(otherNodeLabelsA.map( label => `mongoenv ${label} <dbname>` ))
     );
-    process.stderr.write('Usage:\n' + usageA.map( cmd => `  ${thisScriptPath} ${cmd}\n` ).join(''));
+    process.stderr.write('Usage:\n' + usageA.map( cmd => `  wmc ${cmd}\n` ).join(''));
   };
 
   switch (argCmd) {
+    case 'updateRestart':
     case 'updateWgConf': writeWgClientConfP();                  break;
     case 'mongosh'     : mongoshP(       argParam0, argParam1); break;
     case 'mongoenv'    : getMongoEnvarsP(argParam0, argParam1); break;

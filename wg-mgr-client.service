@@ -6,7 +6,7 @@ After=local-fs.target nss-lookup.target network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/bin/bash -c '. /root/.nvm/nvm.sh && node /opt/wg-mgr-client/wg-mgr-client*.js updateWgConf'
+ExecStart=/bin/bash -c '. /root/.nvm/nvm.sh && node /opt/wg-mgr-client/wg-mgr-client*.js updateRestart'
 WorkingDirectory=/opt/wg-mgr-client
 User=root
 
