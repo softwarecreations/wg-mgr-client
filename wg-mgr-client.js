@@ -127,7 +127,8 @@ const { spawn } = require('child_process');
     console.log(`export MONGO_OPLOG_URL='mongodb://${otherNodeIp}:27017/local'`);
   };
 
-  const [ nodeRuntime, thisScriptPath, argCmd, argParam0, argParam1 ] = process.argv;
+  const argsA = process.argv.slice(process.argv.findIndex( s => !s.endsWith('node') && !s.endsWith('.js') ));
+  const [ argCmd, argParam0, argParam1 ] = argsA;
 
   const showUsageHintsP = async () => {
     const dataO = await getDataOP();
