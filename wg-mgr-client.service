@@ -1,7 +1,7 @@
 [Unit]
 Description=Wireguard VPN config manager - Client
 After=local-fs.target nss-lookup.target network-online.target
-Before=nginx.service wg-quick@wg_router.service
+#cannot say Before=wg or nginx etc because wg-mgr-client needs to restart those IF they exist and IF it's necessary to restart them. Systemd will get stuck if you say this must run Before them.
 
 [Service]
 Type=oneshot
