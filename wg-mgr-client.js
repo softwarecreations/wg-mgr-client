@@ -152,7 +152,7 @@ const otherPossibleServicesA = [ 'ssh', 'nginx', 'mongod' ]; // they don't need 
       .concat(otherNodeLabelsA.map( label => `mongosh  ${label} <dbname>` ))
       .concat(otherNodeLabelsA.map( label => `mongoenv ${label} <dbname>` ))
     );
-    process.stderr.write('Usage:\n' + usageA.map( cmd => `  wmc ${cmd}\n` ).join(''));
+    process.stderr.write('Usage:\n' + usageA.map( cmd => `  wgmc ${cmd}\n` ).join(''));
   };
 
   switch (argCmd) {
