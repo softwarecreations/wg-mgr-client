@@ -3,7 +3,7 @@
 
 #echo "$@" >> /tmp/80-nm-up-restart-vpn.log
 
-[[ $1 != wg_* && $1 != tun_* && $2 = up ]] && {
+[[ $1 != wg_* && $1 != tun_* && $1 != br_ont_* && $1 != brv_* && $1 != k_* && $2 = up ]] && {
 	#echo "$(date) Waiting for internet access... $@" >> /tmp/80-nm-up-restart-vpn.log
 	while ! ping -c1 -w1 1.1.1.1 | grep -q 'bytes from'; do :; done
 	#echo "$(date) Restarting VPN $@" >> /tmp/80-nm-up-restart-vpn.log
