@@ -91,7 +91,15 @@ const colors = { red:s=>`\u001b[31m${s}\u001b[0m`, green:s=>`\u001b[32m${s}\u001
 
   const writeWgClientConfP = async () => {
     const dataO = await getDataOP();
-    const { name, label, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNameLabelsA, PersistentKeepalive } = dataO;
+    const { name, label, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNameLabelsA, PersistentKeepalive, extraO } = dataO;
+    // write out extraO and appO files
+    const { appO={} } = extraO;
+    delete extraO.appO;
+    const envDirPath = path.join(__dirname, 'env');
+    mkdirIfNotExists(envDirPath);
+    fileReplaceContents(path.join(envDirPath, 'host_vars.sh'), makeBashStringExportingEnvVars(extraO));
+    Object.entries(appO).forEach( ([ appName, appExtraO ]) => fileReplaceContents(path.join(envDirPath, `${appName}_vars.sh`), makeBashStringExportingEnvVars(appExtraO)) );
+    // the rest is VPN related
     const restartVpn = () => {
       console.log(`Restarting wg-quick@wg_${vpnName}.service`);
       spawn('systemctl', ['restart', `wg-quick@wg_${vpnName}.service`], { stdio:'inherit' });
