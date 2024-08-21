@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
+const fs = require('fs'), path = require('path');
 const https = require('https');
 const { exec, spawn } = require('child_process');
 const otherPossibleServicesA = [ 'ssh', 'nginx', 'mongod' ]; // they don't need to be installed on all systems, do not edit for specific systems.
@@ -46,8 +46,29 @@ const colors = { red:s=>`\u001b[31m${s}\u001b[0m`, green:s=>`\u001b[32m${s}\u001
     }
   };
 
-  const fileReplaceString = (path, search, replace, ifNotFound) => {
-  	const buf = fs.readFileSync(path).toString();
+  const mkdirIfNotExists = dir => fs.existsSync(dir) || fs.mkdirSync(dir);
+  const fileReplaceContents = (filePath, contents) => {
+    const exists = fs.existsSync(filePath);
+    const oldBuf = exists ? fs.readFileSync(filePath).toString() : '';
+    if (exists && oldBuf===contents || oldBuf.replace(/# updated[^\n]+/,'')===contents.replace(/# updated[^\n]+/,'')) {
+      // console.log(colors.white(`No change to ${filePath}`));
+      return false;
+    }
+  	fs.writeFileSync(filePath, contents);
+    console.log(colors[exists?'magenta':'blue'](`${exists?`Replaced ${oldBuf.length} bytes`:'Created'} file with ${contents.length} bytes: ${filePath}`));
+  	return true;
+  };
+  const makeBashStringExportingEnvVars = envO => { // makes a multi-line bash string exporting environment variables provided by an object, puts an empty line between prefixes FOO_ and BAR_
+    const kvA = Object.entries(envO), expA = [];
+    for (let i=0, key='', value='', prefix='', lastPrefix=''; i < kvA.length; ++i) {
+      [ key, value ] = kvA[i]
+      prefix = key.split('_')[0]; if (prefix !== lastPrefix) { expA.push(''); lastPrefix = prefix; }
+      expA.push(`export ${key}='${value}'`);
+    }
+    return `# updated ${(new Date()).toISOString().replace('T',' ').replace(/\.\d\d\d/,' ')}\n` + expA.join('\n');
+  };
+  const fileReplaceString = (filePath, search, replace, ifNotFound) => {
+  	const buf = fs.readFileSync(filePath).toString();
   	let newBuf = buf;
   	if (buf.match(search)===null) {
   		if (ifNotFound!=='append') return false;
@@ -56,12 +77,12 @@ const colors = { red:s=>`\u001b[31m${s}\u001b[0m`, green:s=>`\u001b[32m${s}\u001
   		newBuf = buf.replace(search, replace);
   		if (newBuf===buf) return false;
   	}
-  	fs.writeFileSync(path, newBuf);
+  	fs.writeFileSync(filePath, newBuf);
   	return true;
   };
-  const fileReplaceStringBetweenComments = (path, purpose, newContents, ifNotFound) => {
+  const fileReplaceStringBetweenComments = (filePath, purpose, newContents, ifNotFound) => {
   	const startComment=`#${purpose} starts`, endComment=`#${purpose} ends`, searchRegex=RegExp(`${startComment}[\\w\\W]*?${endComment}\n`);
-  	return fileReplaceString(path, searchRegex, `${startComment}\n${newContents}\n${endComment}\n`, ifNotFound);
+  	return fileReplaceString(filePath, searchRegex, `${startComment}\n${newContents}\n${endComment}\n`, ifNotFound);
   };
 
   const getNameLabel = (name,label) => label!==name ? `${name} (${label})` : name;
