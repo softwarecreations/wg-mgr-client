@@ -91,7 +91,7 @@ const colors = { red:s=>`\u001b[31m${s}\u001b[0m`, green:s=>`\u001b[32m${s}\u001
 
   const writeWgClientConfP = async () => {
     const dataO = await getDataOP();
-    const { name, label, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNameLabelsA, PersistentKeepalive, extraO } = dataO;
+    const { name, label, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNameLabelsA, PersistentKeepalive, extraO={} } = dataO;
     // write out extraO and appO files
     const { appO={} } = extraO;
     delete extraO.appO;
