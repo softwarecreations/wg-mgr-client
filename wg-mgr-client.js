@@ -91,7 +91,7 @@ const colors = { red:s=>`\u001b[31m${s}\u001b[0m`, green:s=>`\u001b[32m${s}\u001
 
   const writeWgClientConfP = async () => {
     const dataO = await getDataOP();
-    const { name, label, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNameLabelsA, PersistentKeepalive, extraO={} } = dataO;
+    const { name, namesA, label, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNamesA, otherNodeNameLabelsA, PersistentKeepalive, extraO={} } = dataO;
     // write out extraO and appO files
     const { appO={} } = extraO;
     delete extraO.appO;
@@ -130,16 +130,16 @@ const colors = { red:s=>`\u001b[31m${s}\u001b[0m`, green:s=>`\u001b[32m${s}\u001
       if (argCmd==='updateRestart') restartVpn();
       return;
     }
-    fs.writeFileSync(clientWgConfPath, clientWgConfS);
-    console.log(`Wrote new conf ${clientWgConfPath} client:${nameLabel} that connects to server '${serverName}' and ${allowedNameLabelsA.length} other ${'peer'.addS(allowedNameLabelsA.length)} [ '${allowedNameLabelsA.join("', '")}' ]`);
+    // fs.writeFileSync(clientWgConfPath, clientWgConfS);
+    // console.log(`Wrote new conf ${clientWgConfPath} client:${nameLabel} that connects to server '${serverName}' and ${allowedNameLabelsA.length} other ${'peer'.addS(allowedNameLabelsA.length)} [ '${allowedNameLabelsA.join("', '")}' ]`);
     // update /etc/hosts
-    const otherNodeNamesA = otherNodeNameLabelsA.map( s => s.split(' ')[0] );
     let longestVpnIp = vpnIp.length;
-    const allNamesHostsA = otherNodeNameLabelsA.map( (nameLabel, index) => {
+    console.log("otherNodeNamesA", otherNodeNamesA)
+    const allNamesHostsA = otherNodeNamesA.map( (namesA, index) => {
       if (otherNodeIpsA[index].length > longestVpnIp) longestVpnIp = otherNodeIpsA[index].length;
-      return { name:nameLabel.split(' ')[0], ip:otherNodeIpsA[index] };
-    }).concat({ name, ip:vpnIp }).sort( ({ip:a},{ip:b}) => Number(a.split('.')[3]) - Number(b.split('.')[3]) );
-    const wgHosts = allNamesHostsA.map( ({ name, ip }) => `${ip}  ${' '.repeat(longestVpnIp-ip.length)}wg-${name}` ).join('\n');
+      return { namesA, ip:otherNodeIpsA[index] };
+    }).concat({ namesA, ip:vpnIp }).sort( ({ip:a},{ip:b}) => Number(a.split('.')[3]) - Number(b.split('.')[3]) );
+    const wgHosts = allNamesHostsA.map( ({ namesA, ip }) => `${ip}  ${' '.repeat(longestVpnIp-ip.length)}` + namesA.map(name => `wg-${name}`).join(' ') ).join('\n');
     if (fileReplaceStringBetweenComments('/etc/hosts', `wg_${vpnName}`, wgHosts, 'append')) console.log('Updated /etc/hosts');
     restartVpn();
   };
