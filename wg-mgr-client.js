@@ -130,8 +130,8 @@ const colors = { red:s=>`\u001b[31m${s}\u001b[0m`, green:s=>`\u001b[32m${s}\u001
       if (argCmd==='updateRestart') restartVpn();
       return;
     }
-    // fs.writeFileSync(clientWgConfPath, clientWgConfS);
-    // console.log(`Wrote new conf ${clientWgConfPath} client:${nameLabel} that connects to server '${serverName}' and ${allowedNameLabelsA.length} other ${'peer'.addS(allowedNameLabelsA.length)} [ '${allowedNameLabelsA.join("', '")}' ]`);
+    fs.writeFileSync(clientWgConfPath, clientWgConfS);
+    console.log(`Wrote new conf ${clientWgConfPath} client:${nameLabel} that connects to server '${serverName}' and ${allowedNameLabelsA.length} other ${'peer'.addS(allowedNameLabelsA.length)} [ '${allowedNameLabelsA.join("', '")}' ]`);
     // update /etc/hosts
     let longestVpnIp = vpnIp.length;
     console.log("otherNodeNamesA", otherNodeNamesA)
