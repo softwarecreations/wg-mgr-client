@@ -91,13 +91,17 @@ const colors = { red:s=>`\u001b[31m${s}\u001b[0m`, green:s=>`\u001b[32m${s}\u001
 
   const writeWgClientConfP = async () => {
     const dataO = await getDataOP();
-    const { name, namesA, label, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNamesA, otherNodeNameLabelsA, PersistentKeepalive, extraO={} } = dataO;
+    console.log("dataO", dataO)
+    const { name, namesA, label, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverTLD, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNamesA, otherNodeNameLabelsA, PersistentKeepalive, extraO={} } = dataO;
+    const { custName } = dataO; // might run separate TMS servers for specific customers on a single physical server, or maybe cust on old TMS vs new TMS or with different environment variables
     // write out extraO and appO files
-    const { appO={} } = extraO;
-    delete extraO.appO;
+    const custVarsO = extraO.custsA.find( ({ custName:name }) => name===custName )?.custEnvO ?? {};
+    console.log("custVarsO", custVarsO)
+    const { appO={} } = custVarsO;
+    delete custVarsO.appO;
     const envDirPath = path.join(__dirname, 'env');
     mkdirIfNotExists(envDirPath);
-    fileReplaceContents(path.join(envDirPath, 'host_vars.sh'), makeBashStringExportingEnvVars(extraO));
+    fileReplaceContents(path.join(envDirPath, 'host_vars.sh'), makeBashStringExportingEnvVars(custVarsO));
     Object.entries(appO).forEach( ([ appName, appExtraO ]) => fileReplaceContents(path.join(envDirPath, `${appName}_vars.sh`), makeBashStringExportingEnvVars(appExtraO)) );
     // the rest is VPN related
     const restartVpn = () => {
