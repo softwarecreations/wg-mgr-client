@@ -67,12 +67,16 @@ const otherPossibleServicesA = [ 'ssh', 'nginx', 'mongod' ]; // they don't need 
     allConfigHash = dataO.allConfigHash;
     const { nameLabel, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNamesA, otherNodeNameLabelsA, ipHostsA, PersistentKeepalive, extraO={} } = dataO;
     // write out extraO and appO files
-    const { appO={} } = extraO;
-    delete extraO.appO;
-    const envDirPath = path.join(__dirname, 'env');
-    mkdirIfNotExists(envDirPath);
-    fileReplaceContents(path.join(envDirPath, 'host_vars.sh'), makeBashStringExportingEnvVars(extraO));
-    Object.entries(appO).forEach( ([ appName, appExtraO ]) => fileReplaceContents(path.join(envDirPath, `${appName}_vars.sh`), makeBashStringExportingEnvVars(appExtraO)) );
+    const envDir = path.join(__dirname, 'env');
+    mkdirIfNotExists(envDir);
+    extraO.custsA.forEach( ({ custName, custEnvO }) => {
+      const { appO={} } = custEnvO;
+      delete custEnvO.appO;
+      const custEnvDir = path.join(envDir, custName);
+      mkdirIfNotExists(custEnvDir);
+      fileReplaceContents(path.join(custEnvDir, 'host_vars.sh'), makeBashStringExportingEnvVars(custEnvO));
+      Object.entries(appO).forEach( ([ appName, appExtraO ]) => fileReplaceContents(path.join(custEnvDir, `${appName}_vars.sh`), makeBashStringExportingEnvVars(appExtraO)) );
+    });
     // the rest is VPN related
     const restartVpnAndRelatedServices = () => {
       console.log(`Restarting wg-quick@wg_${vpnName}.service`);
