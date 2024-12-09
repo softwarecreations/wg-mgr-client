@@ -4,13 +4,13 @@ After=local-fs.target nss-lookup.target network-online.target
 #cannot say Before=wg or nginx etc because wg-mgr-client needs to restart those IF they exist and IF it's necessary to restart them. Systemd will get stuck if you say this must run Before them.
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/bash -c '. /root/.nvm/nvm.sh && node /opt/wg-mgr-client/wg-mgr-client*.js updateRestart'
+ExecStart=/bin/bash -c '. /root/.nvm/nvm.sh && node /opt/wg-mgr-client/wg-mgr-client*.mjs updateEveryMinute'
 WorkingDirectory=/opt/wg-mgr-client
+Restart=always
+RestartSec=5
 User=root
 
 [Install]
 WantedBy=multi-user.target
 
-# ln -s /opt/wg-mgr-client/wg-mgr-client.service /etc/systemd/system/; systemctl enable wg-mgr-client; systemctl start wg-mgr-client; systemctl status wg-mgr-client
+# wgcService=wg-mgr-client-update-every-minute; ln -s /opt/wg-mgr-client/$wgcService.service /etc/systemd/system/; systemctl enable $wgcService; systemctl start $wgcService; systemctl status $wgcService

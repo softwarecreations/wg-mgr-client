@@ -1,0 +1,16 @@
+[Unit]
+Description=Wireguard VPN config manager - Client
+After=local-fs.target nss-lookup.target network-online.target
+#cannot say Before=wg or nginx etc because wg-mgr-client needs to restart those IF they exist and IF it's necessary to restart them. Systemd will get stuck if you say this must run Before them.
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c '. /root/.nvm/nvm.sh && node /opt/wg-mgr-client/wg-mgr-client*.mjs update'
+WorkingDirectory=/opt/wg-mgr-client
+User=root
+
+[Install]
+WantedBy=multi-user.target
+
+# wgcService=wg-mgr-client-update; ln -s /opt/wg-mgr-client/$wgcService.service /etc/systemd/system/; systemctl enable $wgcService; systemctl start $wgcService; systemctl status $wgcService
