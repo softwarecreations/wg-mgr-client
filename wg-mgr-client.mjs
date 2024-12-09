@@ -8,6 +8,15 @@ import path from 'path';
 import { exec, spawn } from 'child_process';
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const otherPossibleServicesA = [ 'ssh', 'nginx', 'mongod' ]; // they don't need to be installed on all systems, do not edit for specific systems.
+const addPrototypeF  = (type,name,f) => { if (type.prototype[name]===undefined) type.prototype[name]=f; else showError(new Error(`${type.name}.prototype.${name} already exists.`)); };
+addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
+  const matchA = this.match(regex);
+  if (matchA!==null) {
+    if (matchA.length > 2) return matchA[1] ?? matchA[2];
+    if (matchA.length > 1) return matchA[1];
+  }
+  if (ifNotFound===undefined) throw new Error(`Could not find capture group of regex ${regex} in string: ${this}`); else return ifNotFound;
+});
 
 ( () => { // wrapped for uglify-js
   let allConfigHash = '';
@@ -53,10 +62,14 @@ const otherPossibleServicesA = [ 'ssh', 'nginx', 'mongod' ]; // they don't need 
   const mkdirIfNotExists = dir => fs.existsSync(dir) || fs.mkdirSync(dir);
   const makeBashStringExportingEnvVars = envO => { // makes a multi-line bash string exporting environment variables provided by an object, puts an empty line between prefixes FOO_ and BAR_
     const kvA = Object.entries(envO), expA = [];
-    for (let i=0, key='', value='', prefix='', lastPrefix=''; i < kvA.length; ++i) {
-      [ key, value ] = kvA[i]
-      prefix = key.split('_')[0]; if (prefix !== lastPrefix) { expA.push(''); lastPrefix = prefix; }
-      expA.push(`export ${key}='${value}'`);
+    for (let i=0, key='', value='', prefix='', suffix='', lastPrefix='', lastSuffix=''; i < kvA.length; ++i) {
+      [ key, value ] = kvA[i];
+      prefix = key.firstMatch(/^([a-z\d]+)[A-Z]|([A-Z\d]+)_?[A-Za-z\d]*/, key);
+      suffix = key.firstMatch(/[a-z\d_]*?([A-Z][a-z]+|[A-Z]+)$/, key);
+      if (prefix!==lastPrefix && suffix!==lastSuffix) expA.push('');
+      lastPrefix = prefix;
+      lastSuffix = suffix;
+      expA.push(`export ${key}="${value}"`);
     }
     return `${getUpdatedS()}\n` + expA.join('\n');
   };
