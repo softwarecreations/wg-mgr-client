@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+import crypto from 'crypto';
 import padTableA from 'esc-pad-table-array';
 import fileReplaceContents from 'esc-file-replace-contents';
 import fileReplaceSubstringBetweenComments from 'esc-file-replace-substring-between-comments';
@@ -17,7 +17,8 @@ const otherPossibleServicesA = [ 'ssh', 'nginx', 'mongod' ]; // they don't need 
 
   const tryGetDataOP = async () => {
     try {
-      const url = `${clientHttpsUrl}?ifHashChanged=${allConfigHash}`;
+      const randomString = generatePassword(100+Math.random()*100); // protect against BREACH SSL attack
+      const url = `${clientHttpsUrl}?ifHashChanged=${allConfigHash}&r=${randomString}`;
       const response = await fetch(url);
       if (response.status!==200) {
         if (response.status===403) throw new Error(`Forbidden, invalid path. Fix ${urlFilePath}`);
@@ -30,6 +31,7 @@ const otherPossibleServicesA = [ 'ssh', 'nginx', 'mongod' ]; // they don't need 
   };
 
   const sleepP = delay => new Promise( resolveF => setTimeout(resolveF, delay) );
+  const generatePassword = length => crypto.randomBytes(Math.ceil(length * 0.75)).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, length);
 
   const getDataOP = async () => {
     for (let i=0; ; ++i) {
