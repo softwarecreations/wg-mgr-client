@@ -62,14 +62,16 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
   const mkdirIfNotExists = dir => fs.existsSync(dir) || fs.mkdirSync(dir);
   const makeBashStringExportingEnvVars = envO => { // makes a multi-line bash string exporting environment variables provided by an object, puts an empty line between prefixes FOO_ and BAR_
     const kvA = Object.entries(envO), expA = [];
-    for (let i=0, key='', value='', prefix='', suffix='', lastPrefix='', lastSuffix=''; i < kvA.length; ++i) {
+    for (let i=0, key='', value='', isDefaultValue=0, prefix='', suffix='', lastPrefix='', lastSuffix=''; i < kvA.length; ++i) {
       [ key, value ] = kvA[i];
+      isDefaultValue = key[0]===':';
+      if (isDefaultValue) key = key.slice(1);
       prefix = key.firstMatch(/^([a-z\d]+)[A-Z]|([A-Z\d]+)_?[A-Za-z\d]*/, key);
       suffix = key.firstMatch(/[a-z\d_]*?([A-Z][a-z]+|[A-Z]+)$/, key);
       if (prefix!==lastPrefix && suffix!==lastSuffix) expA.push('');
       lastPrefix = prefix;
       lastSuffix = suffix;
-      expA.push(`export ${key}="${value}"`);
+      expA.push( (isDefaultValue ? `[[ $${key} ]] || ` : '') + `export ${key}="${value}"` );
     }
     return `${getUpdatedS()}\n` + expA.join('\n');
   };
