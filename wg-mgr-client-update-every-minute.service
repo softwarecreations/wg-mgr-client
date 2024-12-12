@@ -13,4 +13,4 @@ User=root
 [Install]
 WantedBy=multi-user.target
 
-# wgcService=wg-mgr-client-update-every-minute; ln -s /opt/wg-mgr-client/$wgcService.service /etc/systemd/system/; systemctl enable $wgcService; systemctl start $wgcService; systemctl status $wgcService
+# wgcService=wg-mgr-client-update-every-minute; ln -s /opt/wg-mgr-client/$wgcService.service /etc/systemd/system/; systemctl enable $wgcService; systemctl start $wgcService; sleep 1; systemctl status $wgcService
