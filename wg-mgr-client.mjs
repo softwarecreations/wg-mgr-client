@@ -61,18 +61,29 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
 
   const mkdirIfNotExists = dir => fs.existsSync(dir) || fs.mkdirSync(dir);
   const makeBashStringExportingEnvVars = envO => { // makes a multi-line bash string exporting environment variables provided by an object, puts an empty line between prefixes FOO_ and BAR_
-    const kvA = Object.entries(envO), expA = [];
-    for (let i=0, key='', value='', isDefaultValue=0, prefix='', suffix='', lastPrefix='', lastSuffix=''; i < kvA.length; ++i) {
+    const kvA = Object.entries(envO), expA = [], defTblA=[];
+    for (let i=0, key='', value='', isDefaultValue=0, wasDefaultValue=0, prefix='', suffix='', lastPrefix='', lastSuffix=''; i < kvA.length; ++i) {
       [ key, value ] = kvA[i];
-      isDefaultValue = key[0]===':';
+      isDefaultValue = key[0]==='_';
       if (isDefaultValue) key = key.slice(1);
       prefix = key.firstMatch(/^([a-z\d]+)[A-Z]|([A-Z\d]+)_?[A-Za-z\d]*/, key);
       suffix = key.firstMatch(/[a-z\d_]*?([A-Z][a-z]+|[A-Z]+)$/, key);
-      if (prefix!==lastPrefix && suffix!==lastSuffix) expA.push('');
+      if (isDefaultValue) {
+        if (defTblA.length > 0 && (prefix!==lastPrefix && suffix!==lastSuffix)) defTblA.push(['']);
+        defTblA.push([`[[ $${key}`, `]] || export ${key}="${value}"` ]);
+      } else {
+        if (wasDefaultValue) {
+          expA.push('', padTableA(defTblA, { colDelim:' ' }));
+          defTblA.length = 0;
+        }
+        if (wasDefaultValue || (prefix!==lastPrefix && suffix!==lastSuffix)) expA.push('');
+        expA.push(`export ${key}="${value}"`);
+      }
       lastPrefix = prefix;
       lastSuffix = suffix;
-      expA.push( (isDefaultValue ? `[[ $${key} ]] || ` : '') + `export ${key}="${value}"` );
+      wasDefaultValue = isDefaultValue;
     }
+    if (defTblA.length!==0) expA.push('', padTableA(defTblA, { colDelim:' ' }));
     return `${getUpdatedS()}\n` + expA.join('\n');
   };
 
