@@ -94,16 +94,16 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
     if (dataO.hasChanged===false) return console.log(`${getDateS()} No changes reported.`);
     allConfigHash = dataO.allConfigHash;
     const { nameLabel, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNamesA, otherNodeNameLabelsA, ipHostsA, PersistentKeepalive, extraO={} } = dataO;
-    // write out extraO and appO files
+    // write out extraO and appsO files
     const envDir = path.join(__dirname, 'env');
     mkdirIfNotExists(envDir);
     extraO.custsA.forEach( ({ custName, custEnvO }) => {
-      const { appO={} } = custEnvO;
-      delete custEnvO.appO;
+      const { appsO={} } = custEnvO;
+      delete custEnvO.appsO;
       const custEnvDir = path.join(envDir, custName);
       mkdirIfNotExists(custEnvDir);
       fileReplaceContents(path.join(custEnvDir, 'host_vars.sh'), makeBashStringExportingEnvVars(custEnvO));
-      Object.entries(appO).forEach( ([ appName, appExtraO ]) => fileReplaceContents(path.join(custEnvDir, `${appName}_vars.sh`), makeBashStringExportingEnvVars(appExtraO)) );
+      Object.entries(appsO).forEach( ([ appName, appExtraO ]) => fileReplaceContents(path.join(custEnvDir, `${appName}_vars.sh`), makeBashStringExportingEnvVars(appExtraO)) );
     });
     // the rest is VPN related
     const restartVpnAndRelatedServices = () => {
