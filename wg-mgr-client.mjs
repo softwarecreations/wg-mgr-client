@@ -43,15 +43,15 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
   const generatePassword = length => crypto.randomBytes(Math.ceil(length * 0.75)).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, length);
 
   const getDataOP = async () => {
-    for (let i=0; ; ++i) {
+    for (let attempts=1; ; ++attempts) {
       const [ success, resO ] = await tryGetDataOP();
       if (success) {
-        if (i > 0) console.log(`Successfully loaded ${clientHttpsHost} after ${i+1} attempts.`);
-        return resO;
+        if (attempts > 1) console.log(`Successfully loaded ${clientHttpsHost} after ${attempts} attempts.`);
+        return { attempts, dataO:resO };
       }
       let { code, address } = resO;
       console.error(`Failed to load ${clientHttpsHost} (${address}) ${code}`);
-      if (i < 99) await sleepP(5000); else throw resO;
+      if (attempts < 100) await sleepP(5000); else throw resO;
     }
   };
 
@@ -89,11 +89,22 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
 
   String.prototype.addS = function(n) { return n===1 || n===-1 ? this.toString() : this.toString() + 's'; };
 
+  let checkedCount = 0;
   const checkForUpdatesP = async () => {
-    const dataO = await getDataOP();
+    const { attempts, dataO } = await getDataOP();
+    const { nameLabel, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNamesA, otherNodeNameLabelsA, ipHostsA, PersistentKeepalive, extraO={} } = dataO;
+    const restartVpnAndRelatedServices = () => {
+      console.log(`Restarting wg-quick@wg_${vpnName}.service`);
+      spawn('systemctl', ['restart', `wg-quick@wg_${vpnName}.service`], { stdio:'inherit' });
+      exec('systemctl list-units --all', (err, stdout) => {
+        if (err) return;
+        const otherServicesA = otherPossibleServicesA.map( name => `${name}.service` ).filter( svcName => stdout.includes(svcName) );
+        console.log(`Restarting [${otherServicesA.join(', ')}]`); // so they can receive incoming connections from the VPN
+        spawn('systemctl', ['restart'].concat(otherServicesA), { stdio:'inherit' });
+      });
+    };
     if (dataO.hasChanged===false) return console.log(`${getDateS()} No changes reported.`);
     allConfigHash = dataO.allConfigHash;
-    const { nameLabel, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNamesA, otherNodeNameLabelsA, ipHostsA, PersistentKeepalive, extraO={} } = dataO;
     // write out extraO and appsO files
     const envDir = path.join(__dirname, 'env');
     mkdirIfNotExists(envDir);
@@ -106,16 +117,6 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
       Object.entries(appsO).forEach( ([ appName, appExtraO ]) => fileReplaceContents(path.join(custEnvDir, `${appName}_vars.sh`), makeBashStringExportingEnvVars(appExtraO)) );
     });
     // the rest is VPN related
-    const restartVpnAndRelatedServices = () => {
-      console.log(`Restarting wg-quick@wg_${vpnName}.service`);
-      spawn('systemctl', ['restart', `wg-quick@wg_${vpnName}.service`], { stdio:'inherit' });
-      exec('systemctl list-units --all', (err, stdout) => {
-        if (err) return;
-        const otherServicesA = otherPossibleServicesA.map( name => `${name}.service` ).filter( svcName => stdout.includes(svcName) );
-        console.log(`Restarting [${otherServicesA.join(', ')}]`); // so they can receive incoming connections from the VPN
-        spawn('systemctl', ['restart'].concat(otherServicesA), { stdio:'inherit' });
-      });
-    };
     const outA = getAutoGenA(dataO).concat(['[Interface]', `#My (client IP and key) - ${nameLabel}`, `Address = ${vpnIp}/32`, `PrivateKey = ${PrivateKey}`]);
     if (MTU) outA.push(`MTU = ${MTU}`);
     outA.push('');
@@ -133,7 +134,7 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
     // update /etc/hosts
     const wgHostsS = `${getUpdatedS('automatically for wg-mgr-client ')}\n${padTableA(ipHostsA)}`;
     const updatedEtcHosts = fileReplaceSubstringBetweenComments('/etc/hosts', `wg_${vpnName}`, wgHostsS, 'append');
-    if (updatedVpnConf) restartVpnAndRelatedServices();
+    if (updatedVpnConf || attempts > 1 || ++checkedCount===1) restartVpnAndRelatedServices();
     if (!updatedVpnConf && !updatedEtcHosts) console.log(`${getDateS()} - Up to date. No changes made.`);
   };
 
@@ -149,7 +150,7 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
 
   const mongoshP = async (label, dbName) => {
     if (dbName.indexOf('<')>-1 || dbName.indexOf('>')>-1) throw new Error(`Provide an actual dbname.`);
-    const dataO = await getDataOP();
+    const { dataO } = await getDataOP();
     const { otherNodeIpsA, otherNodeLabelsA } = dataO;
     const otherNodeIndex = otherNodeLabelsA.indexOf(label);
     if (otherNodeIndex===-1) return exitError(`Node label '${label}' does not exist. Available nodes are: [ '${otherNodeLabelsA.join("', '")}' ]`);
@@ -161,7 +162,7 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
 
   const getMongoEnvarsP = async (label, dbName) => {
     if (dbName.indexOf('<')>-1 || dbName.indexOf('>')>-1) throw new Error(`Provide an actual dbname.`);
-    const dataO = await getDataOP();
+    const { dataO } = await getDataOP();
     const { otherNodeIpsA, otherNodeLabelsA } = dataO;
     const otherNodeIndex = otherNodeLabelsA.indexOf(label);
     if (otherNodeIndex===-1) return exitError(`Node label '${label}' does not exist. Available nodes are: [ '${otherNodeLabelsA.join("', '")}' ]`);
@@ -175,7 +176,7 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
 
   const isolatedUsageA = [ 'update', 'updateEveryMinute' ];
   const showUsageHintsP = async () => {
-    const dataO = await getDataOP();
+    const { dataO } = await getDataOP();
     const { isolation, otherNodeIpsA, otherNodeLabelsA } = dataO;
     const usageA = isolation ? isolatedUsageA : ( isolatedUsageA
       .concat(otherNodeLabelsA.map( label => `mongosh  ${label} <dbname>` ))
