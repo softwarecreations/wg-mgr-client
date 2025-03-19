@@ -160,17 +160,6 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
     spawn('mongosh', paramsA, { stdio: 'inherit' });
   };
 
-  const getMongoEnvarsP = async (label, dbName) => {
-    if (dbName.indexOf('<')>-1 || dbName.indexOf('>')>-1) throw new Error(`Provide an actual dbname.`);
-    const { dataO } = await getDataOP();
-    const { otherNodeIpsA, otherNodeLabelsA } = dataO;
-    const otherNodeIndex = otherNodeLabelsA.indexOf(label);
-    if (otherNodeIndex===-1) return exitError(`Node label '${label}' does not exist. Available nodes are: [ '${otherNodeLabelsA.join("', '")}' ]`);
-    const otherNodeIp = otherNodeIpsA[otherNodeIndex];
-    console.log(`export MONGO_URL='mongodb://${otherNodeIp}:27017/${dbName}'`);
-    console.log(`export MONGO_OPLOG_URL='mongodb://${otherNodeIp}:27017/local'`);
-  };
-
   const argsA = process.argv.slice(process.argv.findIndex( s => !s.endsWith('node') && !s.endsWith('.mjs') ));
   const [ argCmd, argParam0, argParam1 ] = argsA;
 
@@ -189,7 +178,6 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
     case 'update'           : checkForUpdatesP();                    break;
     case 'updateEveryMinute': checkForUpdatesEveryMinute();          break;
     case 'mongosh'          : mongoshP(       argParam0, argParam1); break;
-    case 'mongoenv'         : getMongoEnvarsP(argParam0, argParam1); break;
     default                 : showUsageHintsP();                     break;
   }
 })();
