@@ -9,6 +9,7 @@ import { exec, spawn } from 'child_process';
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const otherPossibleServicesA = [ 'ssh', 'nginx', 'mongod' ]; // they don't need to be installed on all systems, do not edit for specific systems.
 const addPrototypeF  = (type,name,f) => { if (type.prototype[name]===undefined) type.prototype[name]=f; else showError(new Error(`${type.name}.prototype.${name} already exists.`)); };
+addPrototypeF(String, 'addS', function(n) { return n===1 || n===-1 ? this.toString() : this.toString() + 's'; });
 addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
   const matchA = this.match(regex);
   if (matchA!==null) {
@@ -86,8 +87,6 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
     if (defTblA.length!==0) expA.push('', padTableA(defTblA, { colDelim:' ' }));
     return `${getUpdatedS()}\n` + expA.join('\n');
   };
-
-  String.prototype.addS = function(n) { return n===1 || n===-1 ? this.toString() : this.toString() + 's'; };
 
   let checkedCount = 0;
   const checkForUpdatesP = async () => {
