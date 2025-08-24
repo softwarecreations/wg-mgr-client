@@ -3,11 +3,17 @@ import crypto from 'crypto';
 import padTableA from 'esc-pad-table-array';
 import fileReplaceContents from 'esc-file-replace-contents';
 import fileReplaceSubstringBetweenComments from 'esc-file-replace-substring-between-comments';
+import { getCmdDataP } from 'esc-get-cmd-data-passthru-async';
+import { runInteractivelyP } from 'esc-get-interactive-cmd-result-async';
 import fs from 'fs';
 import path from 'path';
 import { exec, spawn } from 'child_process';
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const otherPossibleServicesA = [ 'ssh', 'nginx', 'mongod' ]; // they don't need to be installed on all systems, do not edit for specific systems.
+const addPropertyF   = (type,name,x) => { if (type[name]===undefined) type[name]=x; else showError(new Error(`${type.name}.${name} already exists.`)); };
+addPropertyF(Object, 'get', o => o!==null && typeof o==='object' ? o : showError(new Error(`Expected object, but it was:${fancyTypeof(o,1)}`)) );
+addPropertyF(Object, 'getKeys', o => Object.keys(Object.get(o)) );
+addPropertyF(Object, 'withoutKeys' , (o, keys)  => { if (typeof keys==='string') keys=[keys]; return Object.fromEntries(Object.getKeys(o).filter(Array.isArray(keys) ? key => !keys.includes(key) : key => keys[key]===undefined).map( key => [ key, o[key] ] )) });
 const addPrototypeF  = (type,name,f) => { if (type.prototype[name]===undefined) type.prototype[name]=f; else showError(new Error(`${type.name}.prototype.${name} already exists.`)); };
 addPrototypeF(String, 'addS', function(n) { return n===1 || n===-1 ? this.toString() : this.toString() + 's'; });
 addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
@@ -20,6 +26,7 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
 });
 
 ( () => { // wrapped for uglify-js
+  const lastBackupTsM = new Map();
   let allConfigHash = '';
   const urlFilePath = __dirname + '/wg-mgr-client.url';
   const clientHttpsUrl = fs.readFileSync(urlFilePath).toString().split('\n')[0].trim();
@@ -92,17 +99,24 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
   const checkForUpdatesP = async () => {
     const { attempts, dataO } = await getDataOP();
     const { nameLabel, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNamesA, otherNodeNameLabelsA, ipHostsA, PersistentKeepalive, extraO={} } = dataO;
-    const restartVpnAndRelatedServices = () => {
-      console.log(`Restarting wg-quick@wg_${vpnName}.service`);
-      spawn('systemctl', ['restart', `wg-quick@wg_${vpnName}.service`], { stdio:'inherit' });
-      exec('systemctl list-units --all', (err, stdout) => {
-        if (err) return;
-        const otherServicesA = otherPossibleServicesA.map( name => `${name}.service` ).filter( svcName => stdout.includes(svcName) );
-        console.log(`Restarting [${otherServicesA.join(', ')}]`); // so they can receive incoming connections from the VPN
-        spawn('systemctl', ['restart'].concat(otherServicesA), { stdio:'inherit' });
-      });
+    const restartVpnAndRelatedServicesP = async () => {
+      for (let i=0; i<3; ++i) {
+        console.log(`Loop i ${i}`);
+        await runInteractivelyP('systemctl', ['restart', `wg-quick@wg_${vpnName}.service`]);
+        // wait for a successful ping
+        let [ _retCode, outA ] = await getCmdDataP('ping', ['-i', '0.5', '-W', '2', '-c', '5', 'wg-router'], { filterOnly:'bytes from', until:'bytes from', verbosity:1 });
+        if (outA.length!==0) break;
+        await sleepP(1000);
+      }
+      // restart services that are affected by VPN
+      const [ _retCode, haveServicesA, _errA ] = await getCmdDataP('systemctl', ['list-units', '--all'], { capture:/([\w-]+)\.service/, verbosity:1, passthru:false });
+      const restartServicesA = haveServicesA.filter( haveService => otherPossibleServicesA.includes(haveService) );
+      if (restartServicesA.length!==0) await getCmdDataP('systemctl', ['restart'].concat(restartServicesA));
     };
-    if (dataO.hasChanged===false) return console.log(`${getDateS()} No changes reported.`);
+    if (dataO.hasChanged===false) {
+      console.log(`${getDateS()} No changes reported.`);
+      return pingAndRestartVpnIfNecessaryP();
+    }
     allConfigHash = dataO.allConfigHash;
     // write out extraO and appsO files
     const envDir = path.join(__dirname, 'env');
@@ -113,7 +127,20 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
       const custEnvDir = path.join(envDir, custName);
       mkdirIfNotExists(custEnvDir);
       fileReplaceContents(path.join(custEnvDir, 'host_vars.sh'), makeBashStringExportingEnvVars(custEnvO));
-      Object.entries(appsO).forEach( ([ appName, appExtraO ]) => fileReplaceContents(path.join(custEnvDir, `${appName}_vars.sh`), makeBashStringExportingEnvVars(appExtraO)) );
+    //   Object.entries(appsO).forEach( ([ appName, fullAppExtraO ]) => {
+    //     const { backblazeO } = fullAppExtraO;
+    //     if (backblazeO) {
+    //       const { itemsA, keyId, keyName, applicationKey } = backblazeO;
+    //       console.log(appName, 'backblazeO', backblazeO);
+    //       itemsA.forEach( item => {
+    //         const lastBackupTs = lastBackupTsM.get(`${appName}_${item}_cold`) || 0;
+    //         // if ()
+
+    //       });
+    //     }
+    //     const appExtraO = Object.withoutKeys(fullAppExtraO, 'backblazeO');
+    //     fileReplaceContents(path.join(custEnvDir, `${appName}_vars.sh`), makeBashStringExportingEnvVars(appExtraO))
+    //  });
     });
     // the rest is VPN related
     const outA = getAutoGenA(dataO).concat(['[Interface]', `#My (client IP and key) - ${nameLabel}`, `Address = ${vpnIp}/32`, `PrivateKey = ${PrivateKey}`]);
@@ -133,13 +160,24 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
     // update /etc/hosts
     const wgHostsS = `${getUpdatedS('automatically for wg-mgr-client ')}\n${padTableA(ipHostsA)}`;
     const updatedEtcHosts = fileReplaceSubstringBetweenComments('/etc/hosts', `wg_${vpnName}`, wgHostsS, 'append');
-    if (updatedVpnConf || attempts > 1 || ++checkedCount===1) restartVpnAndRelatedServices();
+    const shouldRestartVpn = updatedVpnConf || attempts > 1 || ++checkedCount===1;
+    if (shouldRestartVpn) restartVpnAndRelatedServicesP(); else pingAndRestartVpnIfNecessaryP();
     if (!updatedVpnConf && !updatedEtcHosts) console.log(`${getDateS()} - Up to date. No changes made.`);
+  };
+
+  const pingAndRestartVpnIfNecessaryP = async () => {
+    const [ _retCode, outA, _errA ] = await getCmdDataP('ping', ['-i', '0.5', '-W', '2', '-c', '5', 'wg-router'], { capture:/bytes from.+time=([\d.]+)/, until:'bytes from', passthru:false, verbosity:1 });
+    if (outA.length!==0) {
+      console.log(`Ping wg-router succeeded: ${outA[0]} ms`);
+    } else {
+      console.log('Ping wg-router failed, restarting VPN related services.');
+      restartVpnAndRelatedServicesP();
+    }
   };
 
   const checkForUpdatesEveryMinute = async () => {
     await checkForUpdatesP();
-    setTimeout(checkForUpdatesEveryMinute, 60000);
+    setTimeout(checkForUpdatesEveryMinute, 5000);
   };
 
   const exitError = msg => {

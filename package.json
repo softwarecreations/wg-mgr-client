@@ -1,6 +1,6 @@
 {
   "name": "wg-mgr-client",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Even though this repo is public, it's experimental, not intending for anybody to use it in it's current state.",
   "main": "wg-mgr-client.mjs",
   "scripts": {
@@ -21,6 +21,8 @@
   "dependencies": {
     "esc-file-replace-contents": "^0.1.4",
     "esc-file-replace-substring-between-comments": "^0.1.4",
+    "esc-get-cmd-data-passthru-async": "^0.1.4",
+    "esc-get-interactive-cmd-result-async": "^0.1.1",
     "esc-pad-table-array": "^0.2.13"
   }
 }
