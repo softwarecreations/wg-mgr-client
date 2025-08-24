@@ -7,7 +7,7 @@ import { getCmdDataP } from 'esc-get-cmd-data-passthru-async';
 import { runInteractivelyP } from 'esc-get-interactive-cmd-result-async';
 import fs from 'fs';
 import path from 'path';
-import { exec, spawn } from 'child_process';
+import { spawn } from 'child_process';
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const otherPossibleServicesA = [ 'ssh', 'nginx', 'mongod' ]; // they don't need to be installed on all systems, do not edit for specific systems.
 const addPropertyF   = (type,name,x) => { if (type[name]===undefined) type[name]=x; else showError(new Error(`${type.name}.${name} already exists.`)); };
