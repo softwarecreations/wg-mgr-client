@@ -101,7 +101,6 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
     const { nameLabel, vpnName, vpnIp, PrivateKey, MTU, serverName, serverVpnIp, serverFQDN, serverPublicKey, ListenPort, otherNodeIpsA, otherNodeNamesA, otherNodeNameLabelsA, ipHostsA, PersistentKeepalive, extraO={} } = dataO;
     const restartVpnAndRelatedServicesP = async () => {
       for (let i=0; i<3; ++i) {
-        console.log(`Loop i ${i}`);
         await runInteractivelyP('systemctl', ['restart', `wg-quick@wg_${vpnName}.service`]);
         // wait for a successful ping
         let [ _retCode, outA ] = await getCmdDataP('ping', ['-i', '0.5', '-W', '2', '-c', '5', 'wg-router'], { filterOnly:'bytes from', until:'bytes from', verbosity:1 });
@@ -177,7 +176,7 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
 
   const checkForUpdatesEveryMinute = async () => {
     await checkForUpdatesP();
-    setTimeout(checkForUpdatesEveryMinute, 5000);
+    setTimeout(checkForUpdatesEveryMinute, 60000);
   };
 
   const exitError = msg => {
