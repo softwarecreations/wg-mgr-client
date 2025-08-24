@@ -113,8 +113,9 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
       if (restartServicesA.length!==0) await getCmdDataP('systemctl', ['restart'].concat(restartServicesA));
     };
     if (dataO.hasChanged===false) {
-      // console.log(`${getDateS()} No changes reported.`);
-      return pingAndRestartVpnIfNecessaryP(1);
+      const verbosity = checkedCount < 3 ? 3 : 1;
+      if (verbosity >= 3) console.log(`${getDateS()} No changes reported.`);
+      return pingAndRestartVpnIfNecessaryP(verbosity);
     }
     allConfigHash = dataO.allConfigHash;
     // write out extraO and appsO files
