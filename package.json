@@ -1,6 +1,6 @@
 {
   "name": "wg-mgr-client",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Even though this repo is public, it's experimental, not intending for anybody to use it in it's current state.",
   "main": "wg-mgr-client.mjs",
   "scripts": {

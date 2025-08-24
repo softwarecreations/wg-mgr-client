@@ -113,8 +113,8 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
       if (restartServicesA.length!==0) await getCmdDataP('systemctl', ['restart'].concat(restartServicesA));
     };
     if (dataO.hasChanged===false) {
-      console.log(`${getDateS()} No changes reported.`);
-      return pingAndRestartVpnIfNecessaryP();
+      // console.log(`${getDateS()} No changes reported.`);
+      return pingAndRestartVpnIfNecessaryP(1);
     }
     allConfigHash = dataO.allConfigHash;
     // write out extraO and appsO files
@@ -160,16 +160,16 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
     const wgHostsS = `${getUpdatedS('automatically for wg-mgr-client ')}\n${padTableA(ipHostsA)}`;
     const updatedEtcHosts = fileReplaceSubstringBetweenComments('/etc/hosts', `wg_${vpnName}`, wgHostsS, 'append');
     const shouldRestartVpn = updatedVpnConf || attempts > 1 || ++checkedCount===1;
-    if (shouldRestartVpn) restartVpnAndRelatedServicesP(); else pingAndRestartVpnIfNecessaryP();
+    if (shouldRestartVpn) restartVpnAndRelatedServicesP(); else pingAndRestartVpnIfNecessaryP(3);
     if (!updatedVpnConf && !updatedEtcHosts) console.log(`${getDateS()} - Up to date. No changes made.`);
   };
 
-  const pingAndRestartVpnIfNecessaryP = async () => {
+  const pingAndRestartVpnIfNecessaryP = async (verbosity=3) => {
     const [ _retCode, outA, _errA ] = await getCmdDataP('ping', ['-i', '0.5', '-W', '2', '-c', '5', 'wg-router'], { capture:/bytes from.+time=([\d.]+)/, until:'bytes from', passthru:false, verbosity:1 });
     if (outA.length!==0) {
-      console.log(`Ping wg-router succeeded: ${outA[0]} ms`);
+      if (verbosity >= 2) console.log(`Ping wg-router succeeded: ${outA[0]} ms`);
     } else {
-      console.log('Ping wg-router failed, restarting VPN related services.');
+      if (verbosity >= 1) console.log('Ping wg-router failed, restarting VPN related services.');
       restartVpnAndRelatedServicesP();
     }
   };
