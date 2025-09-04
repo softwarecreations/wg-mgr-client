@@ -127,20 +127,20 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
       const custEnvDir = path.join(envDir, custName);
       mkdirIfNotExists(custEnvDir);
       fileReplaceContents(path.join(custEnvDir, 'host_vars.sh'), makeBashStringExportingEnvVars(custEnvO));
-    //   Object.entries(appsO).forEach( ([ appName, fullAppExtraO ]) => {
-    //     const { backblazeO } = fullAppExtraO;
-    //     if (backblazeO) {
-    //       const { itemsA, keyId, keyName, applicationKey } = backblazeO;
-    //       console.log(appName, 'backblazeO', backblazeO);
-    //       itemsA.forEach( item => {
-    //         const lastBackupTs = lastBackupTsM.get(`${appName}_${item}_cold`) || 0;
-    //         // if ()
+      Object.entries(appsO).forEach( ([ appName, fullAppExtraO ]) => {
+        // const { backblazeO } = fullAppExtraO;
+        // if (backblazeO) {
+        //   const { itemsA, keyId, keyName, applicationKey } = backblazeO;
+        //   console.log(appName, 'backblazeO', backblazeO);
+        //   itemsA.forEach( item => {
+        //     const lastBackupTs = lastBackupTsM.get(`${appName}_${item}_cold`) || 0;
+        //     // if ()
 
-    //       });
-    //     }
-    //     const appExtraO = Object.withoutKeys(fullAppExtraO, 'backblazeO');
-    //     fileReplaceContents(path.join(custEnvDir, `${appName}_vars.sh`), makeBashStringExportingEnvVars(appExtraO))
-    //  });
+        //   });
+        // }
+        const appExtraO = Object.withoutKeys(fullAppExtraO, 'backblazeO');
+        fileReplaceContents(path.join(custEnvDir, `${appName}_vars.sh`), makeBashStringExportingEnvVars(appExtraO))
+     });
     });
     // the rest is VPN related
     const outA = getAutoGenA(dataO).concat(['[Interface]', `#My (client IP and key) - ${nameLabel}`, `Address = ${vpnIp}/32`, `PrivateKey = ${PrivateKey}`]);
