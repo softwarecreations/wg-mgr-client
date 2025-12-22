@@ -5,6 +5,7 @@ import fileReplaceContents from 'esc-file-replace-contents';
 import fileReplaceSubstringBetweenComments from 'esc-file-replace-substring-between-comments';
 import { getCmdDataP } from 'esc-get-cmd-data-passthru-async';
 import { runInteractivelyP } from 'esc-get-interactive-cmd-result-async';
+import { colors } from 'esc-colors';
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
@@ -110,7 +111,24 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
       // restart services that are affected by VPN
       const [ _retCode, haveServicesA, _errA ] = await getCmdDataP('systemctl', ['list-units', '--all'], { capture:/([\w-]+)\.service/, verbosity:1, passthru:false });
       const restartServicesA = haveServicesA.filter( haveService => otherPossibleServicesA.includes(haveService) );
-      if (restartServicesA.length!==0) await getCmdDataP('systemctl', ['restart'].concat(restartServicesA));
+      const restartNotNginxServicesA = restartServicesA.filter( haveService => haveService!=='nginx' );
+      if (restartNotNginxServicesA.length!==0) await getCmdDataP('systemctl', ['restart'].concat(restartNotNginxServicesA), { verbosity:0, rejectOnError:false });
+      if (restartServicesA.includes('nginx')) {
+        const exitCode = runInteractivelyP('nginx', ['-t'], { rejectOnError:false });
+        if (exitCode===0) await getCmdDataP('systemctl', ['restart', 'nginx'], { verbosity:0, rejectOnError:false });
+      }
+      if (restartServicesA.length!==0) {
+        await sleepP(1000);
+        await Promise.all( restartServicesA.map( async serviceName => {
+          const [ isActiveRetCode ] = await getCmdDataP('systemctl', ['is-active'].concat(serviceName), { verbosity:0, rejectOnError:false, passthru:false } );
+          if (isActiveRetCode===0) {
+            console.log(colors.green(`${serviceName} restarted successfully and is active`));
+          } else {
+            console.error(colors.red(`${serviceName} failed to restart and is stopped`));
+            await runInteractivelyP('systemctl', ['status', '--no-pager'].concat(serviceName), { verbosity:0, rejectOnError:false } );
+          }
+        }));
+      }
     };
     if (dataO.hasChanged===false) {
       const verbosity = checkedCount < 3 ? 3 : 1;

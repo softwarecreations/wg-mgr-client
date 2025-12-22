@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/softwarecreations/wg-mgr-client#readme",
   "dependencies": {
+    "esc-colors": "^0.1.5",
     "esc-file-replace-contents": "^0.1.4",
     "esc-file-replace-substring-between-comments": "^0.1.4",
     "esc-get-cmd-data-passthru-async": "^0.1.4",
