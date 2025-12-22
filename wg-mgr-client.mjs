@@ -114,7 +114,7 @@ addPrototypeF(String, 'firstMatch', function(regex, ifNotFound) {
       const restartNotNginxServicesA = restartServicesA.filter( haveService => haveService!=='nginx' );
       if (restartNotNginxServicesA.length!==0) await getCmdDataP('systemctl', ['restart'].concat(restartNotNginxServicesA), { verbosity:0, rejectOnError:false });
       if (restartServicesA.includes('nginx')) {
-        const exitCode = runInteractivelyP('nginx', ['-t'], { rejectOnError:false });
+        const exitCode = await runInteractivelyP('nginx', ['-t'], { rejectOnError:false });
         if (exitCode===0) await getCmdDataP('systemctl', ['restart', 'nginx'], { verbosity:0, rejectOnError:false });
       }
       if (restartServicesA.length!==0) {
